@@ -8,11 +8,9 @@
 # 3. Performing searches on wikipedia
 
 #TODO
-# BUGS 1. if timer ends while bot is already speaking an error occurs
-#      2. searching "donkey" returns "honey" from wikipedia, is there a way to double check/stop this error
 # FEAT 1. create bailout function accessible at any time that restarts/accelerates bot
-#      2. simplify exceptions in main try/excpetion thingy so we don't need an else statement
-#      3. automatically determine if text or speech input is to be taken
+#      2. automatically determine if text or speech input is to be taken
+#      3. simplify/combine else and exceptions in main while loop
 
 
 
@@ -20,32 +18,39 @@
 # THINGS TO ADD:
 # 1. Ability to send texts
 # 2. Ability to dial a number
-# 3. Ability to set a timer/alarm
 
+# Bug fixes
 # To remove "no parser explicitly specified" warning
 # Find similar path to C:\Users\Ethan\PycharmProjects\assistant\venv\Lib\site-packages\wikipedia
-# Repalce lis = BeautifulSoup(html).find_all('li')
+# Replace lis = BeautifulSoup(html).find_all('li')
 # With lis = BeautifulSoup(html, "html.parser").find_all('li')
+#
+# To get proper wikipedia search ie not getting "honey" when searching "donkey"
+# Replace result = wikipedia.summary(search, sentences)
+# With result = wikipedia.summary(search, sentences, auto_suggest=False)
 
 
 
 
-# This class helps to obtain the current date.
+# This class helps to obtain the current date
 from datetime import date, datetime
 
-# This carries out searches on wikipedia when prompted by the user.
+# This carries out searches on wikipedia when prompted by the user
 import wikipedia
 
-# This converts text to speech.
+# This converts text to speech
 import pyttsx3
 
-#This allows the human-computer interaction by detecting the microphone and spaker in the machine.
+# This allows the human-computer interaction by detecting the microphone and spaker in the machine
 import speech_recognition as sr
 
 # Enables timer
 import threading
 
 import time
+
+# Used for timer/alarm beeping
+import winsound
 
 # Defining a variable and assigning it today's date.
 current_date = date.today()
@@ -70,7 +75,8 @@ common_greetings = dict(hello="Hello, My name is BlueBelle and I am your virtual
                         origin="I was hidden in the crypts of the human brain until Linwood Computers Inc. brought me to life.",
                         health="I am doing very well, how about yourself?",
                         wiki="What would you like me to search for you today?",
-                        timer="How many seconds would you like to set a timer for?")
+                        timer="How many seconds would you like to set a timer for?",
+                        alarm="When would you like to set an alarm for?")
 
 # Function sets up the microphone for communicating with the bot
 def mic_setup():
@@ -118,19 +124,22 @@ def wiki_search():
     # Allows wiki searches to display 4 sentences
     sentences = 4
     try:
-        result = wikipedia.summary(search, sentences)
+        result = wikipedia.summary(search, sentences, auto_suggest=False)
         response(result)
     except wikipedia.DisambiguationError:
         response("Sorry, you need to be more specific.")
-
-# Function to output a message at the end of the timer
-def end_time():
-    response("Times up!")
+    except wikipedia.HTTPTimeoutError:
+        response("Sorry, I could not connect to the internet.")
+    except wikipedia.PageError:
+        response("Sorry, I could not find what you were looking for.")
+    except wikipedia.RedirectError:
+        response("Sorry, I have been redirected while searching")
+    except wikipedia.WikipediaException:
+        response("Sorry, I have encountered an exception while searching")
 
 # Function to set a timer
 def timer_setup():
     response("timer")
-
     # Length of time to set timer for in seconds
     length = input("Timer: ")
     # Try to convert time from str to float
@@ -144,8 +153,65 @@ def timer_setup():
     except ValueError:
         response("Sorry, that's not a valid time.")
 
+# Function to output a message at the end of the timer and make a beeping noise
+def end_time():
+    print("\n\n" + "-"*100 + "\nTIMER\nTimes up! The timer has finished. Please feel free to continue with your task.\n" + "-"*100 + "\n\n")
+    for i in range(5):
+        time.sleep(0.06)
+        winsound.Beep(700, 100)
 
+# Function to set an alarm
+def alarm_setup():
+    response("alarm")
+    # Getting current time
+    now = datetime.now()
+    cur_time = now.strftime("%H:%M:%S")
+    # Getting time user wants alarm to go off at
+    in_time = input("Currently the time is " + str(cur_time) + ", Alarm: ")
+    try:
+        # See function descriptions for explanation
+        cur_time = time_parseer(cur_time)
+        cur_time = hours_to_seconds(cur_time[0], cur_time[1], cur_time[2])
+        out_time = time_parseer(in_time)
+        out_time = hours_to_seconds(out_time[0], out_time[1], out_time[2])
+        # Amount of time in seconds until alarm goes off
+        length = abs(out_time - cur_time)
+        length_disp = seconds_to_hours(length)
+        # Gives time until alarm goes off
+        print(str(length_disp[0]) + ":" + str(length_disp[1]) + ":" + str(length_disp[2]), "until the alarm ends.")
+        # Start countdown till alarm goes off
+        timer = threading.Timer(length, end_alarm)
+        timer.start()
+    except ValueError:
+        response("Sorry, that's not a valid time.")
 
+# Function to convert from S to [H,M,S]
+def seconds_to_hours(seconds):
+    seconds %= (24 * 60 * 60)
+    hours = seconds // (60 * 60)
+    seconds %= (60 * 60)
+    minutes = seconds // 60
+    seconds %= 60
+    return hours, minutes, seconds
+
+# Function to convert from [H,M,S] to S
+def hours_to_seconds(hours, minutes, seconds):
+    seconds = seconds + (minutes * 60) + (hours * 24 * 60)
+    return seconds
+
+# Function to convert time from H:M:S format to [H,M,S]
+def time_parseer(given_time):
+    hours = int(given_time[0:2])
+    minutes = int(given_time[3:5])
+    seconds = int(given_time[6:8])
+    return hours, minutes, seconds
+
+# Function to output a message at the end of the timer and make a beeping noise
+def end_alarm():
+    print("\n\n" + "-"*100 + "\nALARM\nTimes up! The alarm has finished. Please feel free to continue with your task.\n" + "-"*100 + "\n\n")
+    for i in range(5):
+        time.sleep(0.06)
+        winsound.Beep(800, 100)
 
 # Loop infinitely for user to speak
 while 1:
@@ -172,6 +238,9 @@ while 1:
 
             elif MyText == "i want to set a timer" or MyText == "5":
                 timer_setup()
+
+            elif MyText == "i want to set an alarm" or MyText == "6":
+                alarm_setup()
 
             else:
                 response("Sorry I don't understand.")

@@ -1,11 +1,18 @@
 # START OF CODE
-# Written by Aryan Sahel and Ethan Clarke:) last updated August 20, 2020.
+# Written by Aryan Sahel and Ethan Clarke:) last updated September 4, 2020.
 # Virtual Assistant.py ©
 
 # This is the code for a simple chatbot/virtual assistant. It is currently capable of:
 # 1. Responding to courtesies.
 # 2. Displaying the date and time.
-# 3. Performing searches on wikipedia
+# 3. Performing searches on wikipedia.
+# 4. Performing google searches.
+# 5. Displaying stock market data.
+# 6. Setting a timer.
+# 7. Setting an alarm.
+# 8. Sending a text message.
+# 9. Sending a message on whatsapp.
+
 
 #TODO
 # FEAT 1. create bailout function accessible at any time that restarts/accelerates bot
@@ -16,8 +23,9 @@
 
 
 # THINGS TO ADD:
-# 1. Ability to send texts
-# 2. Ability to dial a number
+# 1. Weather report
+# 2. Play music on spotify
+# 3. Better UI 
 
 # Bug fixes
 # To remove "no parser explicitly specified" warning
@@ -28,7 +36,6 @@
 # To get proper wikipedia search ie not getting "honey" when searching "donkey"
 # Replace result = wikipedia.summary(search, sentences)
 # With result = wikipedia.summary(search, sentences, auto_suggest=False)
-
 
 
 
@@ -47,10 +54,26 @@ import speech_recognition as sr
 # Enables timer
 import threading
 
+#Used to switch between different values of time
 import time
 
 # Used for timer/alarm beeping
 import winsound
+
+#Used for sending messages
+import smtplib
+
+#Used for sending a whatsapp message
+import pywhatkit
+
+#Used for analysing stocks
+import yfinance as yf
+
+#Used for plotting the data as a graph
+import matplotlib.pyplot as plt
+
+#Used to hide the password entered by the user for security purposes
+import getpass
 
 # Defining a variable and assigning it today's date.
 current_date = date.today()
@@ -64,19 +87,42 @@ print("\nThe date today is", date, ".")
 current_time = datetime.now()
 time_set = current_time.strftime("%H:%M:%S")
 print("The current time is", time_set, ".")
-print("Virtual Assistant is running...")
 
+#Startup instructions.
+print()
+print("Virtual Assistant is running...")
+print()
+print("Let's log you in!")
+name = input("Please enter your name: ")
+email = input("Please enter your gmail account: ")
+#The password will be hidden for maximum secrecy.
+password = getpass.getpass("Please enter your password: ")
+print("You're all set to go!")
 
 # Initialize the recognizer for microphone.
 r = sr.Recognizer()
 
-# A dictionary contain common greetings as keys and their responses as values.
+# A dictionary containing common greetings as keys and their responses as values.
 common_greetings = dict(hello="Hello, My name is BlueBelle and I am your virtual assistant.",
                         origin="I was hidden in the crypts of the human brain until Linwood Computers Inc. brought me to life.",
                         health="I am doing very well, how about yourself?",
                         wiki="What would you like me to search for you today?",
                         timer="How many seconds would you like to set a timer for?",
-                        alarm="When would you like to set an alarm for?")
+                        alarm="When would you like to set an alarm for?",
+                        number = "Please enter the number of the person you would like to message along with the country code",
+                        carrier = "Please enter the receiver's carrier",
+                        text_msg = "What message would you like to send?",
+                        msg_time = "Please enter the time when you would like to send the message",
+                        google = "What do you want to search for on the web?",
+                        stock = "What company would you like to analyse?")
+
+#A dictionary containing a list of domain names for canadian network providers.
+provider_list = dict(bell = "@txt.bell.ca",
+                     fido = "@fido.ca",
+                     freedom = "@txt.freedommobile.ca",
+                     koodo = "@msg.telus.com",
+                     rogers = "@pcs.rogers.com",
+                     telus = "@msg.telus.com")
 
 # Function sets up the microphone for communicating with the bot
 def mic_setup():
@@ -108,10 +154,21 @@ def response(input):
     if input in common_greetings:
         print(common_greetings.get(input))
         speak_text(common_greetings.get(input))
+    
     else:
         print(input)
         speak_text(input)
 
+#Function to carry out a search on google.
+def google_search():
+    response("google")
+
+    #Variable to hold the user's input.
+    g_search = input("Search: ")
+
+    #Function imported from pywhatkit that carries out the search.
+    pywhatkit.search(g_search)
+    
 # Function to search on wikipedia
 def wiki_search():
     response("wiki")
@@ -136,6 +193,23 @@ def wiki_search():
         response("Sorry, I have been redirected while searching")
     except wikipedia.WikipediaException:
         response("Sorry, I have encountered an exception while searching")
+
+def stock_data():
+    response("stock")
+    
+    #Variable to hold company stock symbol.
+    tickerSymbol = input("Enter the symbol for the company: ")
+
+    #Variables to hold start and end date of the analysis
+    start_date = input("Enter the start date: ")
+    end_date = input("Enter the end date: ")
+
+    #Function to obtain the stck market data
+    data = yf.download(tickerSymbol, start_date, end_date)
+
+    #Functions to plot the data as a graph
+    data.Close.plot()
+    plt.show()
 
 # Function to set a timer
 def timer_setup():
@@ -213,6 +287,45 @@ def end_alarm():
         time.sleep(0.06)
         winsound.Beep(800, 100)
 
+def send_message():
+    response("number")
+    num = input("Enter number: ")
+
+    response("carrier")
+    provider = input("Enter carrier: ").lower()
+    
+    response("text_msg")
+    message = input("Enter message: ")
+
+    #Establishes an imap with gmail
+    server = smtplib.SMTP("smtp.gmail.com", 587)
+    server.starttls()
+
+    #Logs the user into their gmail account
+    server.login(email, password)
+
+    #Used to send the message
+    server.sendmail( name, num + provider_list.get(provider), message)
+
+    print("Message sent successfully!")
+
+def whatsapp():
+    response("number")
+    num = input("Enter number: ")
+
+    response("text_msg")
+    wapp_message = input("Enter message: ")
+
+    response("msg_time")
+
+    #We have to placeholders for time i.e. hour and minute.
+    #This is because the pywhatkit.sendwhatmsg function needs them as separate arguments.
+    msg_hour = int(input("Enter time hour in 24h format: "))
+    msg_min = int(input("Enter time minute: "))
+
+    #Used to send whatsapp message at the deisgnated time
+    pywhatkit.sendwhatmsg(num, wapp_message, msg_hour, msg_min)
+
 # Loop infinitely for user to speak
 while 1:
 
@@ -220,7 +333,7 @@ while 1:
     # Exception if user input invalid
     try:
             print("\nType or say something:")
-            #MyText =  mic_setup()
+            #MyText =  mic_setup() 
             MyText = input()
             MyText.lower()
 
@@ -233,7 +346,7 @@ while 1:
             elif MyText == "where are you from" or MyText == "3":
                 response("origin")
 
-            elif MyText == "i want to search for something" or MyText == "4":
+            elif MyText == "i want to search for something on wikipedia" or MyText == "4":
                 wiki_search()
 
             elif MyText == "i want to set a timer" or MyText == "5":
@@ -241,6 +354,18 @@ while 1:
 
             elif MyText == "i want to set an alarm" or MyText == "6":
                 alarm_setup()
+            
+            elif MyText == "i want to send a message" or MyText == "7":
+                send_message()
+            
+            elif MyText == "i want to send a whatsapp message" or MyText == "8":
+                whatsapp()
+            
+            elif MyText == "i want to search for something" or MyText == "9":
+                google_search()
+            
+            elif MyText == "i want to analyse stocks" or MyText == "10":
+                stock_data()
 
             else:
                 response("Sorry I don't understand.")

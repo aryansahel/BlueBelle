@@ -298,10 +298,10 @@ def language_translator():
 
     #Storing the text to be translated.
     response("translate")
-    text  = input("Enter text here ")
+    text  = input("Enter text here: ")
 
     #Storing the destination language.
-    response("Please enter the language to which you would like to translate")
+    response("Please enter the language to which you would like to translate: ")
     destination = input("Enter language here: ").lower()
 
     try:

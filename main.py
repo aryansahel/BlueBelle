@@ -1,5 +1,5 @@
 # START OF CODE
-# Written by Aryan Sahel and Ethan Clarke:) last updated September 4, 2020.
+# Written by Aryan Sahel and Ethan Clarke:) last updated September 5, 2020.
 # Virtual Assistant.py ©
 
 # This is the code for a simple chatbot/virtual assistant. It is currently capable of:
@@ -12,6 +12,7 @@
 # 7. Setting an alarm.
 # 8. Sending a text message.
 # 9. Sending a message on whatsapp.
+# 10. Translating a text.
 
 
 #TODO
@@ -75,6 +76,9 @@ import matplotlib.pyplot as plt
 #Used to hide the password entered by the user for security purposes
 import getpass
 
+#Used for translating the text in the language translator function
+from googletrans import Translator
+
 # Defining a variable and assigning it today's date.
 current_date = date.today()
 
@@ -114,7 +118,8 @@ common_greetings = dict(hello="Hello, My name is BlueBelle and I am your virtual
                         text_msg = "What message would you like to send?",
                         msg_time = "Please enter the time when you would like to send the message",
                         google = "What do you want to search for on the web?",
-                        stock = "What company would you like to analyse?")
+                        stock = "What company would you like to analyse?",
+                        translate = "What would you like to translate?")
 
 #A dictionary containing a list of domain names for canadian network providers.
 provider_list = dict(bell = "@txt.bell.ca",
@@ -286,6 +291,30 @@ def end_alarm():
     for i in range(5):
         time.sleep(0.06)
         winsound.Beep(800, 100)
+    
+def language_translator():
+    #Object having constructor properties.
+    translator = Translator()
+
+    #Storing the text to be translated.
+    response("translate")
+    text  = input("Enter text here ")
+
+    #Storing the destination language.
+    response("Please enter the language to which you would like to translate")
+    destination = input("Enter language here: ").lower()
+
+    try:
+        #Storing the translated raw code in a variable.
+        translated = translator.translate(text, dest = destination)
+
+        #Printing the meaningful part of the translated text.
+        print(translated.text)
+        #Printing and saying the pronunciation out loud.
+        response(translated.pronunciation)
+        print(translated.pronunciation)
+    except ValueError:
+        print("Please enter a valid language.")
 
 def send_message():
     response("number")
@@ -367,15 +396,17 @@ while 1:
             elif MyText == "i want to analyse stocks" or MyText == "10":
                 stock_data()
 
+            elif MyText == "i want to translate some text" or MyText == "11":
+                language_translator()
+
             else:
                 response("Sorry I don't understand.")
 
     except sr.RequestError as e:
         print("Could not request results; {0}".format(e))
-        # SpeakText("Request is unavailable.")
+        response("Request is unavailable.")
 
     except sr.UnknownValueError:
         response("I'm not sure I understand.")
-        # SpeakText("I'm not sure I understand.")
 
 # END OF CODE.

@@ -1,5 +1,5 @@
 # START OF CODE
-# Written by Aryan Sahel and Ethan Clarke:) last updated September 5, 2020.
+# Written by Aryan Sahel and Ethan Clarke
 # Virtual Assistant.py ©
 
 # This is the code for a simple chatbot/virtual assistant. It is currently capable of:
